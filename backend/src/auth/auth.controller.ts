@@ -52,12 +52,26 @@ export class AuthController {
 	@Post('register')
 	async register(@Body() registerDto: RegisterDto) {
 		try {
-			console.log('🔄 Registration request received:', { email: registerDto.email, name: registerDto.name });
+			console.log('🔄 Registration request received:', { 
+				email: registerDto.email, 
+				name: registerDto.name,
+				hasPassword: !!registerDto.password,
+				dtoType: typeof registerDto,
+				dtoKeys: Object.keys(registerDto),
+				rawBody: JSON.stringify(registerDto)
+			});
+			
 			const result = await this.authService.register(registerDto);
 			console.log('✅ Registration successful:', result);
 			return result;
 		} catch (error) {
 			console.error('❌ Registration error in controller:', error);
+			console.error('❌ Error details:', {
+				message: error.message,
+				statusCode: error.statusCode,
+				stack: error.stack,
+				dto: registerDto
+			});
 			throw error; // Re-throw to let the service handle it
 		}
 	}

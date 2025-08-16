@@ -6,14 +6,22 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable validation pipes
+  // Enable validation pipes with more flexible configuration
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false, // Changed to false to allow extra properties
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
+      },
+      // Add custom error messages
+      exceptionFactory: (errors) => {
+        const messages = errors.map(error => {
+          const constraints = Object.values(error.constraints || {});
+          return `${error.property}: ${constraints.join(', ')}`;
+        });
+        return new Error(`Validation failed: ${messages.join('; ')}`);
       },
     }),
   );
@@ -26,12 +34,13 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
 
-  const server = await app.listen(process.env.PORT || 3000);
+  const port = process.env.PORT || 3000;
+  const server = await app.listen(port);
   server.setTimeout(10000); // Set server timeout to 10 seconds
   
-  console.log(`🚀 Backend server running on port ${process.env.PORT || 3000}`);
-  console.log(`🔗 Health check: http://localhost:${process.env.PORT || 3000}/health`);
-  console.log(`🧪 Test endpoint: http://localhost:${process.env.PORT || 3000}/test`);
+  console.log(`🚀 Backend server running on http://localhost:${port}`);
+  console.log(`🔗 Health check: http://localhost:${port}/health`);
+  console.log(`🧪 Test endpoint: http://localhost:${port}/test`);
 }
 
 bootstrap().catch((error) => {

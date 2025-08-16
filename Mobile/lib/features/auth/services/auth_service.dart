@@ -72,6 +72,11 @@ class AuthService {
       } else if (e.type == DioExceptionType.receiveTimeout) {
         throw Exception('Request timeout. Please try again.');
       } else if (e.response != null) {
+        if (e.response?.statusCode == 401) {
+          throw Exception(
+            'Invalid credentials. Please check your email and password.',
+          );
+        }
         final errorMessage =
             e.response?.data?['message'] ??
             e.response?.statusMessage ??

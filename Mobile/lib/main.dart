@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 import 'features/auth/controllers/auth_controller.dart';
+import 'features/auth/services/auth_service.dart';
+import 'features/auth/widgets/auth_guard.dart';
+import 'features/profile/controllers/profile_controller.dart';
+import 'features/profile/services/profile_service.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/register_screen.dart';
 import 'features/auth/screens/reset_password_screen.dart';
+import 'features/auth/screens/debug_auth_screen.dart';
+import 'features/home/screens/home_screen.dart';
+import 'features/profile/screens/profile_screen.dart';
 import 'services/connection_test_service.dart';
 import 'config/api_config.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,20 +25,41 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
+    return MultiProvider(
+      providers: [
+        Provider<Dio>(
+          create: (_) => Dio(),
+        ),
+        Provider<AuthService>(
+          create: (_) => AuthService(),
+        ),
+        ChangeNotifierProvider<AuthController>(
       create: (_) => AuthController(),
+        ),
+        Provider<ProfileService>(
+          create: (context) => ProfileService(
+            context.read<Dio>(),
+          ),
+        ),
+        ChangeNotifierProvider<ProfileController>(
+          create: (context) => ProfileController(
+            context.read<ProfileService>(),
+          ),
+        ),
+      ],
       child: MaterialApp(
         title: 'PhoneCare',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
-        home: const ConnectionTestScreen(),
+        theme: AppTheme.lightTheme,
+        initialRoute: '/login', // Start with login screen
         routes: {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/reset-password': (context) => const ResetPasswordScreen(),
+          '/home': (context) => const AuthGuard(child: HomeScreen()),
+          '/profile': (context) => const AuthGuard(child: ProfileScreen()),
+          '/debug-auth': (context) => const DebugAuthScreen(),
         },
+        home: const LoginScreen(), // Fallback to login screen
       ),
     );
   }
@@ -56,15 +86,15 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
   Future<void> _testConnection() async {
     final testService = ConnectionTestService();
     testService.printConfig();
-    
+
     final success = await testService.testConnection();
-    
+
     if (mounted) {
       setState(() {
         _isTesting = false;
         _connectionSuccessful = success;
-        _statusMessage = success 
-            ? 'Backend connection successful! ✅' 
+        _statusMessage = success
+            ? 'Backend connection successful! ✅'
             : 'Backend connection failed! ❌';
       });
     }
@@ -85,13 +115,9 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // App Icon/Logo
-              Icon(
-                Icons.phone_android,
-                size: 80,
-                color: Colors.blue.shade600,
-              ),
+              Icon(Icons.phone_android, size: 80, color: Colors.blue.shade600),
               const SizedBox(height: 32),
-              
+
               // Title
               const Text(
                 'PhoneCare',
@@ -102,17 +128,14 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Subtitle
               const Text(
                 'Testing Backend Connection',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 18, color: Colors.grey),
               ),
               const SizedBox(height: 48),
-              
+
               // Connection Status
               if (_isTesting)
                 Column(
@@ -140,12 +163,14 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: _connectionSuccessful ? Colors.green : Colors.red,
+                        color: _connectionSuccessful
+                            ? Colors.green
+                            : Colors.red,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Configuration Info
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -173,20 +198,24 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                     ),
                   ],
                 ),
-              
+
               const SizedBox(height: 48),
-              
+
               // Action Buttons
               if (!_isTesting)
                 Column(
                   children: [
                     if (_connectionSuccessful)
                       ElevatedButton(
-                        onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                        onPressed: () =>
+                            Navigator.pushReplacementNamed(context, '/login'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
                         ),
                         child: const Text(
                           'Continue to Login',
@@ -201,7 +230,10 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
                             ),
                             child: const Text(
                               'Retry Connection',
@@ -211,10 +243,7 @@ class _ConnectionTestScreenState extends State<ConnectionTestScreen> {
                           const SizedBox(height: 16),
                           const Text(
                             'Make sure your backend is running on port 3000',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
                             textAlign: TextAlign.center,
                           ),
                         ],

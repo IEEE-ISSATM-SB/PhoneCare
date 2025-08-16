@@ -14,7 +14,13 @@ export class AuthService {
 
 	async register(registerDto: RegisterDto) {
 		try {
-			console.log('🔐 Registration attempt:', { email: registerDto.email, name: registerDto.name });
+			console.log('🔐 Registration attempt:', { 
+				email: registerDto.email, 
+				name: registerDto.name,
+				hasPassword: !!registerDto.password,
+				passwordLength: registerDto.password?.length,
+				dtoKeys: Object.keys(registerDto)
+			});
 			
 			const { email, password, name } = registerDto;
 			const existingUser = await this.usersService.findByEmail(email);
@@ -35,6 +41,11 @@ export class AuthService {
 				throw error;
 			}
 			console.error('❌ Registration error:', error);
+			console.error('❌ Error details:', {
+				message: error.message,
+				stack: error.stack,
+				dto: registerDto
+			});
 			throw new InternalServerErrorException('Failed to register user. Please try again.');
 		}
 	}
