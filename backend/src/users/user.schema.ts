@@ -11,6 +11,21 @@ export class User extends Document {
 
   @Prop()
   name?: string;
+
+  @Prop()
+  phoneNumber?: string;
+
+  @Prop()
+  profilePicture?: string; // URL or file path
+
+  @Prop()
+  lastPasswordChange?: Date;
+
+  @Prop()
+  otpCode?: string;
+
+  @Prop()
+  otpExpires?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { GoogleStrategy } from './google.strategy';
@@ -10,9 +11,27 @@ import { UsersModule } from '../users/users.module';
   imports: [
     UsersModule,
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || '',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '3600s' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => {
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+        const jwtExpiresIn = configService.get<string>('JWT_EXPIRES_IN') || '3600s';
+        
+        if (!jwtSecret) {
+          console.error('❌ JWT_SECRET environment variable is not set!');
+          console.error('   Please set JWT_SECRET in your .env file');
+          throw new Error('JWT_SECRET environment variable is required');
+        }
+        
+        console.log('🔐 JWT configuration loaded successfully');
+        console.log(`   Expires in: ${jwtExpiresIn}`);
+        
+        return {
+          secret: jwtSecret,
+          signOptions: { expiresIn: jwtExpiresIn },
+        };
+      },
+      inject: [ConfigService],
     }),
   ],
   controllers: [AuthController],
